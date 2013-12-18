@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="metaioSDKSignature">fcuD/AV8+IHt/Pw0JykLm4C3o3QAT9tamqSzhiaFYjQ=</string>
+    <string name="app_name">MetaioCV Demo</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+
+</resources>
