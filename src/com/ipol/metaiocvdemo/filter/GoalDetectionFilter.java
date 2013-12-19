@@ -10,9 +10,7 @@ import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -21,14 +19,12 @@ import com.ipol.metaiocvdemo.DisplayHelper;
 
 public class GoalDetectionFilter extends Filter {
 
-	private static final int factor = 1;
+	private static final int factor = 4;
 
 	private int counter;
 
 	private Mat mGrayscaleImage = new Mat();
 	private Mat mThresholdImage = new Mat();
-
-	private Rect referenceFrame;
 
 	Mat mHierarchy = new Mat();
 
@@ -38,19 +34,14 @@ public class GoalDetectionFilter extends Filter {
 
 	private int m_minContourLengthAllowed;
 	
-	private final Scalar transparentScalar = new Scalar(0, 0, 0, 0);
-
 	public GoalDetectionFilter() {
 		super();
-		referenceFrame = new Rect(0, 0, DisplayHelper.INSTANCE.getDisplayHeight(),
-				DisplayHelper.INSTANCE.getDisplayWidth());
 	}
 	
 	private Size filterSize;
 
 	@Override
 	public List<Marker> processFrame(Mat bigImage) {
-
 		Mat image = null;
 		possibleMarkers.clear();
 
@@ -67,15 +58,10 @@ public class GoalDetectionFilter extends Filter {
 		Imgproc.resize(bigImage, image, newSize);
 
 		detectWithWhiteMethod(image);
-
-//		Imgproc.resize(image, image, filterSize);
-		
 		
 		// }
 
 		counter++;
-//		return image;
-//		return mThresholdImage;
 		return possibleMarkers;
 	}
 
@@ -86,14 +72,9 @@ public class GoalDetectionFilter extends Filter {
 		Imgproc.cvtColor(image, mGrayscaleImage, Imgproc.COLOR_BGRA2GRAY);
 		Imgproc.medianBlur(mGrayscaleImage, mGrayscaleImage, 0);
 		Imgproc.adaptiveThreshold(mGrayscaleImage, mThresholdImage, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C,
-				Imgproc.THRESH_BINARY_INV, 7, 9);
+				Imgproc.THRESH_BINARY_INV, 7, 7);
 
 		findContoursInImage(mThresholdImage, mContours, mGrayscaleImage.cols() / 5);
-
-//		image.setTo(transparentScalar);
-//		for (int i = 0; i < mContours.size(); i++)
-//			Imgproc.drawContours(image, mContours, i, new Scalar(0, 0, 255), 1);
-
 
 		if (mContours.size() > 0) {
 			
@@ -112,11 +93,6 @@ public class GoalDetectionFilter extends Filter {
 				hull.add(new MatOfPoint(l));
 			}
 		}
-
-//		image.setTo(transparentScalar);
-//		for (int i = 0; i < hull.size(); i++)
-//			Imgproc.drawContours(image, hull, i, new Scalar(255, 0, 0), 1);
-
 
 		 findCandidates(hull, possibleMarkers);
 	}
@@ -168,14 +144,10 @@ public class GoalDetectionFilter extends Filter {
 			// We interested only in polygons that contains only four points
 			if ((approxCurve.cols() * approxCurve.rows()) != 4)
 				continue;
-			else
-				System.out.println("1 succeded");
 
 			// And they have to be convex
 			if (!Imgproc.isContourConvex(new MatOfPoint(approxCurve.toArray())))
 				continue;
-			else
-				System.out.println("2 succeded");
 
 			// Ensure that the distance between consecutive points is large
 			// enough
@@ -191,13 +163,9 @@ public class GoalDetectionFilter extends Filter {
 			// Check that distance is not very small
 			if (minDist < m_minContourLengthAllowed)
 				continue;
-			else
-				System.out.println("3 succeded");
 
 			if (minDist > 100000)
 				continue;
-			else
-				System.out.println("4 succeded");
 
 			// Mat approxMat = new Mat(approxCurve);
 
@@ -217,8 +185,6 @@ public class GoalDetectionFilter extends Filter {
 				if (maxCosine > 0.3) {
 					continue;
 				}
-				else
-					System.out.println("5 succeded");
 			}
 
 			RotatedRect minRect = Imgproc.minAreaRect(approxCurve);
@@ -271,8 +237,6 @@ public class GoalDetectionFilter extends Filter {
 					|| differenceOfLeftX > tolerance) {
 				continue;
 			}
-			else
-				System.out.println("6 succeded");
 
 			float width = (float) Math.sqrt(Math.pow(lowerLeft.x - lowerRight.x, 2)
 					+ Math.pow(lowerLeft.y - lowerRight.y, 2));
@@ -318,11 +282,8 @@ public class GoalDetectionFilter extends Filter {
 				Collections.swap(m.points, 1, 3);
 
 			_possibleMarkers.add(m);
-			System.out.println("reached end");
 		}
 		
-		System.out.println("possible markers: "+_possibleMarkers.size());
-
 		// if (approxPoly.size() > 0)
 		// cv::drawContours(m_grayscaleImage, approxPoly, -1, cv::Scalar(255,
 		// 255, 9));
@@ -377,7 +338,6 @@ public class GoalDetectionFilter extends Filter {
 				possibleMarkers.add(_possibleMarkers.get(i));
 		}
 		
-		System.out.println("possible Markers at end: "+possibleMarkers.size());
 	}
 
 	public double angle(Point pt1, Point pt2, Point pt0) {
