@@ -15,6 +15,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.os.AsyncTask;
 
+import com.ipol.metaiocvdemo.filter.FeatureDetection;
 import com.ipol.metaiocvdemo.filter.GoalDetectionFilter;
 import com.ipol.metaiocvdemo.filter.Marker;
 import com.metaio.sdk.jni.IMetaioSDKAndroid;
@@ -27,7 +28,8 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	private IMetaioSDKAndroid sdk;
 
 	private GoalDetectionFilter goalDetectionFilter;
-	
+	private FeatureDetection featureDetection;
+
 	private Paint markerPaint;
 
 	private int frameCount = 0;
@@ -36,9 +38,9 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		this.activity = activity;
 		this.sdk = sdk;
 		goalDetectionFilter = new GoalDetectionFilter();
+		featureDetection = new FeatureDetection();
 		markerPaint = new Paint();
 		markerPaint.setColor(Color.parseColor("#ff0000"));
-//		markerPaint.setStrokeWidth(8);
 	}
 
 	@Override
@@ -46,25 +48,13 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onNewCameraFrame(cameraFrame);
 		frameCount++;
 
-		if (frameCount % 3 == 0) {
+		if (frameCount % 5 == 0) {
 			activity.updateFramerate();
+			new ConvertTask(cameraFrame).execute();
 
-			Mat mat = getMat(cameraFrame);
-			Bitmap matBitmap = Bitmap.createBitmap((int) mat.size().width,
-					(int) mat.size().height, Bitmap.Config.ARGB_8888);
-			List<Marker> possibleMarkers = goalDetectionFilter.processFrame(mat);
-			
-			drawMarkers(possibleMarkers, matBitmap);
-			
-//			Mat processedMat = goalDetectionFilter.processFrame(mat);
-
-//			Utils.matToBitmap(processedMat, matBitmap, false);
-
-//			activity.updatePreview(matBitmap);
-
-//			new ConvertTask(cameraFrame).execute();
+			// Mat mat = getMat(cameraFrame);
+			// featureDetection.processFrame(mat);
 		}
-
 		sdk.requestCameraImage();
 	}
 
@@ -74,7 +64,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	}
 
 	private Bitmap bmp;
-	
+
 	public Mat getMat(ImageStruct src) {
 		int width = src.getWidth();
 		int height = src.getHeight();
@@ -90,35 +80,29 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 
 		private ImageStruct cameraFrame;
 		private Bitmap matBitmap;
+		List<Marker> possibleMarkers;
 
 		public ConvertTask(ImageStruct cameraFrame) {
-			this.cameraFrame = cameraFrame;
+			this.cameraFrame = new ImageStruct(cameraFrame);
 		}
 
 		@Override
 		protected Void doInBackground(Void... params) {
-//			Mat mat = getMat(cameraFrame);
-//			Mat processedMat = goalDetectionFilter.processFrame(mat);
-//
-//			matBitmap = Bitmap.createBitmap((int) processedMat.size().width,
-//					(int) processedMat.size().height, Bitmap.Config.ARGB_8888);
-//			Utils.matToBitmap(processedMat, matBitmap, false);
+			Mat mat = getMat(cameraFrame);
+//			possibleMarkers = goalDetectionFilter.processFrame(mat);
+			featureDetection.processFrame(mat);
+
+//			matBitmap = Bitmap.createBitmap((int) mat.size().width, (int) mat.size().height, Bitmap.Config.ARGB_8888);
+//			drawMarkers(possibleMarkers, matBitmap);
+
 			return null;
 		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			super.onPostExecute(result);
-			activity.updatePreview(matBitmap);
-		}
-
 	}
-	
+
 	public void drawMarkers(List<Marker> markers, Bitmap bmp) {
-		
+
 		Canvas canvas = new Canvas(bmp);
 		for (Marker m : markers) {
-			System.out.println("marker: "+m);
 			List<Point> points = m.getPoints();
 			Path rect = new Path();
 			rect.moveTo((float) points.get(0).x, (float) points.get(0).y);
@@ -128,7 +112,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 			rect.lineTo((float) points.get(0).x, (float) points.get(0).y);
 			canvas.drawPath(rect, markerPaint);
 		}
-		
+
 		activity.updatePreview(bmp);
 	}
 
