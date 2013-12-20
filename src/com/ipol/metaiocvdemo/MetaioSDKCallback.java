@@ -89,8 +89,8 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 			long starttime = System.currentTimeMillis();
 			
 			Mat mat = getMat(cameraFrame);
-			bitmap = goalDetectionFilter.processFrame(mat);
-//			bitmap = featureDetection.processFrame(mat);
+//			bitmap = goalDetectionFilter.processFrame(mat);
+			bitmap = featureDetection.processFrame(mat);
 
 			if (bitmap != null)
 				activity.updatePreview(bitmap);

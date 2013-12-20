@@ -29,7 +29,7 @@ public class FeatureDetection extends Filter {
 	private Point targetPoint;
 
 	private int blurrFactor = 9;
-	private MatOfPoint initial;
+	private List<Point> initial;
 	private MatOfPoint features;
 	private MatOfPoint initialFound;
 	private MatOfPoint toFound;
@@ -95,7 +95,7 @@ public class FeatureDetection extends Filter {
 		target = new Point(targetPoint.x / factorX, targetPoint.y / factorY);
 
 		int numberOfPoints = points.cols() * points.rows();
-		int numberOfInitials = initial.cols() * initial.rows();
+		int numberOfInitials = initial.size();
 
 		if (DEBUG) {
 			Point to = hitPointTo;
@@ -119,7 +119,7 @@ public class FeatureDetection extends Filter {
 		for (int i = 0; i < numberOfPoints; i++) {
 
 			Point p = points.toArray()[i];
-			Point initialPoint = initial.toArray()[i];
+			Point initialPoint = initial.get(i);
 			Point prevoisPpint = previousPoints.toArray()[i];
 
 			float frameStart = history.get(i);
@@ -183,7 +183,7 @@ public class FeatureDetection extends Filter {
 			for (int i = 0; i < numberOfPoints; i++) {
 
 				Point p = points.toArray()[i];
-				Point initialPoint = initial.toArray()[i];
+				Point initialPoint = initial.get(i);
 				Point prevoisPpint = previousPoints.toArray()[i];
 
 				boolean intersects = circleLineIntersect(initialPoint.x, initialPoint.y, p.x, p.y, target.x, target.y,
@@ -406,13 +406,13 @@ public class FeatureDetection extends Filter {
 		return new Point(p.x * factor, p.y * factor);
 	}
 
-	private void displayPoints(Mat image, MatOfPoint fromPoints, MatOfPoint2f toPoints) {
+	private void displayPoints(Mat image, List<Point> fromPoints, MatOfPoint2f toPoints) {
 
-		int fromPointsSize = fromPoints.cols() * fromPoints.rows();
+		int fromPointsSize = fromPoints.size();
 		System.out.println("fromPointsSize: "+fromPointsSize);
 		for (int i = 0; i < fromPointsSize; i++) {
 
-			Point from = fromPoints.toArray()[i];
+			Point from = fromPoints.get(i);
 			Point to = toPoints.toArray()[i];
 
 			from.x *= factor;
