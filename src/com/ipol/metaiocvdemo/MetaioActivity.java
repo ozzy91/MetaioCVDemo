@@ -3,6 +3,7 @@ package com.ipol.metaiocvdemo;
 import org.opencv.android.OpenCVLoader;
 
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
@@ -10,6 +11,7 @@ import android.widget.TextView;
 
 import com.metaio.sdk.ARViewActivity;
 import com.metaio.sdk.jni.IGeometry;
+import com.metaio.sdk.jni.IMetaioSDKAndroid;
 import com.metaio.sdk.jni.IMetaioSDKCallback;
 import com.metaio.sdk.jni.Vector2d;
 import com.metaio.sdk.jni.Vector2di;
@@ -33,6 +35,16 @@ public class MetaioActivity extends ARViewActivity {
 	@Override
 	protected int getGUILayout() {
 		return R.layout.activity_metaio;
+	}
+
+	@Override
+	public void onSurfaceCreated() {
+		super.onSurfaceCreated();
+		// Setup auto-focus
+        Camera camera = IMetaioSDKAndroid.getCamera(this);
+        Camera.Parameters params = camera.getParameters();
+        params.setFocusMode("continuous-picture");
+        camera.setParameters(params);
 	}
 
 	@Override

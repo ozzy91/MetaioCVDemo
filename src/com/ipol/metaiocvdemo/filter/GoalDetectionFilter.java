@@ -14,14 +14,23 @@ import org.opencv.core.RotatedRect;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+
 import com.ipol.metaiocvdemo.DisplayHelper;
 
 
 public class GoalDetectionFilter extends Filter {
 
 	private static final int factor = 4;
+	private static final boolean DEBUG = true;
 
 	private int counter;
+	private Bitmap bmp;
+	private Paint markerPaint;
 
 	private Mat mGrayscaleImage = new Mat();
 	private Mat mThresholdImage = new Mat();
@@ -36,12 +45,14 @@ public class GoalDetectionFilter extends Filter {
 	
 	public GoalDetectionFilter() {
 		super();
+		markerPaint = new Paint();
+		markerPaint.setColor(Color.parseColor("#ff0000"));
 	}
 	
 	private Size filterSize;
 
 	@Override
-	public List<Marker> processFrame(Mat bigImage) {
+	public Bitmap processFrame(Mat bigImage) {
 		Mat image = null;
 		possibleMarkers.clear();
 
@@ -60,9 +71,16 @@ public class GoalDetectionFilter extends Filter {
 		detectWithWhiteMethod(image);
 		
 		// }
+		
+		if (DEBUG) {
+			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
+			drawMarkers(possibleMarkers, bmp);
+		} else {
+			bmp = null;
+		}
 
 		counter++;
-		return possibleMarkers;
+		return bmp;
 	}
 
 	public void detectWithWhiteMethod(Mat image) {
@@ -339,12 +357,19 @@ public class GoalDetectionFilter extends Filter {
 		}
 		
 	}
+	
+	public void drawMarkers(List<Marker> markers, Bitmap bmp) {
 
-	public double angle(Point pt1, Point pt2, Point pt0) {
-		double dx1 = pt1.x - pt0.x;
-		double dy1 = pt1.y - pt0.y;
-		double dx2 = pt2.x - pt0.x;
-		double dy2 = pt2.y - pt0.y;
-		return (dx1 * dx2 + dy1 * dy2) / Math.sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
+		Canvas canvas = new Canvas(bmp);
+		for (Marker m : markers) {
+			List<Point> points = m.getPoints();
+			Path rect = new Path();
+			rect.moveTo((float) points.get(0).x, (float) points.get(0).y);
+			rect.lineTo((float) points.get(1).x, (float) points.get(1).y);
+			rect.lineTo((float) points.get(2).x, (float) points.get(2).y);
+			rect.lineTo((float) points.get(3).x, (float) points.get(3).y);
+			rect.lineTo((float) points.get(0).x, (float) points.get(0).y);
+			canvas.drawPath(rect, markerPaint);
+		}
 	}
 }

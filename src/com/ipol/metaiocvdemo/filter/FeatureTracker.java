@@ -13,7 +13,11 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
+import android.util.Log;
+
 public class FeatureTracker {
+	
+	private static final String TAG = "FeatureTracker";
 
 	private Mat gray; // current gray-level image
 	private Mat grayPrev; // previous gray-level image
@@ -78,97 +82,120 @@ public class FeatureTracker {
 		points[1] = new MatOfPoint2f();
 		initial = new MatOfPoint();
 		features = new MatOfPoint();
-		history.clear();
 		historyEnd.clear();
 		grayPrev.release();
 	}
 
 	public void process(Mat frame, Mat output) {
-		try {
-			minDist = 10;
-			maxCount = 500;
+		minDist = 10;
+		maxCount = 500;
 
-			Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
-			if (blurrFactor != 0)
-				Imgproc.medianBlur(gray, gray, blurrFactor);
+		Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
+		if (blurrFactor != 0)
+			Imgproc.medianBlur(gray, gray, blurrFactor);
 
-			if (addNewPoints()) {
-				// detect feature points
-				detectFeaturePoints();
+		if (addNewPoints()) {
+			// detect feature points
+			detectFeaturePoints();
 
-				// add the detected features to the currently tracked features
-				ArrayList<Point> tmpList = new ArrayList<Point>();
-				tmpList.addAll(points[0].toList());
-				tmpList.addAll(features.toList());
-				// points[0].addAll(features.toList());
-				Point[] array = new Point[tmpList.size()];
-				for (int i = 0; i< tmpList.size(); i++)
-					array[i] = tmpList.get(i);
-				points[0] = new MatOfPoint2f(array);
+			// add the detected features to the currently tracked features
+			ArrayList<Point> tmpList = new ArrayList<Point>();
+			tmpList.addAll(points[0].toList());
+			tmpList.addAll(features.toList());
+			// points[0].addAll(features.toList());
+			Point[] array = new Point[tmpList.size()];
+			for (int i = 0; i < tmpList.size(); i++)
+				array[i] = tmpList.get(i);
+			points[0] = new MatOfPoint2f(array);
 
-				tmpList.clear();
-				tmpList.addAll(initial.toList());
-				tmpList.addAll(features.toList());
-				// initial.insert(initial.end(),features.begin(),features.end());
-				array = new Point[tmpList.size()];
-				for (int i = 0; i< tmpList.size(); i++)
-					array[i] = tmpList.get(i);
+			tmpList.clear();
+			Log.v(TAG, "initial size: "+initial.toList().size());
+			Log.v(TAG, "features size: "+features.toList().size());
+			tmpList.addAll(initial.toList());
+			tmpList.addAll(features.toList());
+			// initial.insert(initial.end(),features.begin(),features.end());
+			array = new Point[tmpList.size()];
+			for (int i = 0; i < tmpList.size(); i++)
+				array[i] = tmpList.get(i);
+			initial = new MatOfPoint(array);
+			Log.v(TAG, "array size: "+array.length);
+
+			ArrayList<Float> frames = new ArrayList<Float>();
+			int pointsSize = points[0].cols() * points[0].rows();
+			for (int i = 0; i < pointsSize; i++) {
+				frames.add(counter / 1f);
+			}
+			history.addAll(frames);
+		}
+
+		// for first image of the sequence
+		if (grayPrev.empty())
+			gray.copyTo(grayPrev);
+
+		if ((points[0].cols() * points[0].rows()) == 0)
+			return;
+
+		Video.calcOpticalFlowPyrLK(grayPrev, gray, // 2 consecutive images
+				points[0], // input point position in first image
+				points[1], // output point postion in the second image
+				status, // tracking success
+				err, new Size(40, 40), 5); // tracking error
+
+		ArrayList<Float> frames2 = new ArrayList<Float>();
+		int historySize = history.size();
+		for (int i = 0; i < historySize; i++) {
+			frames2.add(counter / 1f);
+		}
+		historyEnd = frames2;
+
+		// 2. loop over the tracked points to reject the undesirables
+		int k = 0;
+		int numberOfPoints = points[1].cols() * points[1].rows();
+		for (int i = 0; i < numberOfPoints; i++) {
+
+			// do we keep this point?
+			if (acceptTrackedPoint(i)) {
+
+				// keep this point in vector
+				// initial[k] = initial[i];
+				// points[1][k++] = points[1][i];
+				// history[k - 1] = history[i];
+				Point[] array = initial.toArray();
+				Log.v(TAG, "initial array length: "+array.length);
+				array[k] = array[i];
 				initial = new MatOfPoint(array);
-
-				ArrayList<Float> frames = new ArrayList<Float>();
-				int pointsSize = points[0].cols() * points[0].rows();
-				for (int i = 0; i < pointsSize; i++) {
-					frames.add(counter / 1f);
-				}
-				history.addAll(frames);
+				array = points[1].toArray();
+				array[k++] = array[i];
+				points[1] = new MatOfPoint2f(array);
+				history.set(k - 1, history.get(i));
 			}
+		}
 
-			// for first image of the sequence
-			if (grayPrev.empty())
-				gray.copyTo(grayPrev);
+		// eliminate unsuccesful points
 
-			if ((points[0].cols() * points[0].rows()) == 0)
-				return;
+		// points[1] = new MatOfPoint2f((Point[])
+		// points[1].toList().subList(0, k).toArray());
+		List<Point> tmpList = points[1].toList().subList(0, k);
+		Point[] array = new Point[tmpList.size()];
+		for (int i = 0; i < tmpList.size(); i++)
+			array[i] = tmpList.get(i);
+		points[1] = new MatOfPoint2f(array);
 
-			Video.calcOpticalFlowPyrLK(grayPrev, gray, // 2 consecutive images
-					points[0], // input point position in first image
-					points[1], // output point postion in the second image
-					status, // tracking success
-					err, new Size(40, 40), 5); // tracking error
+		// initial = new MatOfPoint((Point[]) initial.toList().subList(0,
+		// k).toArray());
+		tmpList = initial.toList().subList(0, k);
+		array = new Point[tmpList.size()];
+		for (int i = 0; i < tmpList.size(); i++)
+			array[i] = tmpList.get(i);
+		initial = new MatOfPoint(array);
 
-			ArrayList<Float> frames2 = new ArrayList<Float>();
-			int historySize = history.size();
-			for (int i = 0; i < historySize; i++) {
-				frames2.add(counter / 1f);
-			}
-			historyEnd = frames2;
+		history = history.subList(0, k);
 
-			// 2. loop over the tracked points to reject the undesirables
-			int k = 0;
-			int numberOfPoints = points[1].cols() * points[1].rows();
-			for (int i = 0; i < numberOfPoints; i++) {
-
-				// do we keep this point?
-				if (acceptTrackedPoint(i)) {
-
-					// keep this point in vector
-					// initial[k] = initial[i];
-					// points[1][k++] = points[1][i];
-					// history[k - 1] = history[i];
-				}
-			}
-
-			// eliminate unsuccesful points
-			// points[1].resize(k);
-			// initial.resize(k);
-			// history.resize(k);
-			points[1] = new MatOfPoint2f((Point[]) points[1].toList().subList(0, k).toArray());
-			initial = new MatOfPoint((Point[]) initial.toList().subList(0, k).toArray());
-			history = history.subList(0, k);
-
-			counter++;
-		} catch (Exception e) {
-			e.printStackTrace();
+		counter++;
+		
+		if (counter > 50) {
+			Log.e(TAG, "restart");
+			restart();
 		}
 	}
 
@@ -178,6 +205,16 @@ public class FeatureTracker {
 
 	public boolean addNewPoints() {
 		return (points[0].cols() * points[0].rows()) <= 10;
+	}
+	
+	public void swapPoints() {
+		// 4. current points and image become previous ones
+		MatOfPoint2f tmp = points[0];
+		points[0] = points[1];
+		points[1] = tmp;
+		Mat tmpMat = grayPrev;
+		grayPrev = gray;
+		gray = tmpMat;
 	}
 
 	public boolean acceptTrackedPoint(int i) {
