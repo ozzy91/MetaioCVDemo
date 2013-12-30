@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
@@ -13,11 +14,18 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
+import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.util.Log;
 
 import com.ipol.metaiocvdemo.DisplayHelper;
 
-public class FeatureDetection extends Filter {
+public class FeatureDetection extends Filter implements SensorEventListener {
 
 	private static final int factor = 6;
 	private static final boolean DEBUG = true;
@@ -25,6 +33,8 @@ public class FeatureDetection extends Filter {
 	private Bitmap bmp;
 	private Scalar pinkScalar = new Scalar(255, 0, 255);
 	private Scalar yellowScalar = new Scalar(255, 255, 0);
+	private Scalar redScalar = new Scalar(255, 0, 0);
+	private Scalar clearScalar = new Scalar(0, 0, 0, 0);
 
 	private Point targetPoint;
 
@@ -43,18 +53,31 @@ public class FeatureDetection extends Filter {
 	private List<Float> historyEnd;
 
 	private FeatureTracker tracker;
+	private boolean processAllowed;
 	private int counter;
 
-	public FeatureDetection() {
+	private SensorManager mSensorManager;
+	private Sensor mSensor;
+
+	public FeatureDetection(Activity activity) {
 		tracker = new FeatureTracker();
 		targetPoint = new Point();
 
 		hitPointTo = new Point();
 		hitPointFrom = new Point();
+
+		mSensorManager = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
+		mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+		mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+		processAllowed = true;
 	}
 
 	@Override
 	public Bitmap processFrame(Mat image) {
+
+		if (!processAllowed)
+			return null;
 
 		counter++;
 
@@ -72,6 +95,8 @@ public class FeatureDetection extends Filter {
 		double dfactorX = DisplayHelper.INSTANCE.getDisplayHeight() / filterSize.width;
 		double dfactorY = DisplayHelper.INSTANCE.getDisplayWidth() / filterSize.height;
 
+		Mat resultMat = new Mat(filterSize, CvType.CV_8UC4);
+		resultMat.setTo(clearScalar);
 		Mat frame = new Mat();
 		Imgproc.resize(image, frame, newSize);
 
@@ -87,7 +112,7 @@ public class FeatureDetection extends Filter {
 		historyEnd = tracker.historyEnd;
 
 		if (DEBUG) {
-			displayPoints(image, initial, points);
+			displayPoints(resultMat, initial, points);
 		}
 
 		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
@@ -122,8 +147,12 @@ public class FeatureDetection extends Filter {
 			Point initialPoint = initial.get(i);
 			Point prevoisPpint = previousPoints.toArray()[i];
 
-			float frameStart = history.get(i);
-			float frameEnd = historyEnd.get(i);
+			float frameStart = 0;
+			if (history.size() > i)
+				frameStart = history.get(i);
+			float frameEnd = 0;
+			if (historyEnd.size() > i)
+				frameEnd = historyEnd.get(i);
 
 			if (numberOfInitials > i) {
 
@@ -350,10 +379,11 @@ public class FeatureDetection extends Filter {
 		boolean numberOfHitPointsBiggerThenNumberOfMissPoints = (numberOfMissPoints / 1.5f) < numberOfFoundPoints;
 		boolean missedPointsLongEnough = averageDistanceMiss >= 42;
 
-//		System.out.println(angleValid + " angleValid");
-//		System.out.println(distanceValid + " distanceValid");
-//		System.out.println(minumumPointCountValid + " minumumPointCountValid");
-//		System.out.println("---------------");
+		// System.out.println(angleValid + " angleValid");
+		// System.out.println(distanceValid + " distanceValid");
+		// System.out.println(minumumPointCountValid +
+		// " minumumPointCountValid");
+		// System.out.println("---------------");
 		// System.out.println("numberOfFramesReached: "+numberOfFramesReached);
 		// System.out.println("distanceToTargetValid: "+distanceToTargetValid);
 		// System.out.println("angleValid: "+angleValid);
@@ -378,8 +408,10 @@ public class FeatureDetection extends Filter {
 
 		tracker.swapPoints();
 
-		bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
-		Utils.matToBitmap(image, bmp);
+		if (DEBUG) {
+			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
+			Utils.matToBitmap(resultMat, bmp);
+		}
 
 		return bmp;
 	}
@@ -409,7 +441,6 @@ public class FeatureDetection extends Filter {
 	private void displayPoints(Mat image, List<Point> fromPoints, MatOfPoint2f toPoints) {
 
 		int fromPointsSize = fromPoints.size();
-		System.out.println("fromPointsSize: "+fromPointsSize);
 		for (int i = 0; i < fromPointsSize; i++) {
 
 			Point from = fromPoints.get(i);
@@ -425,11 +456,48 @@ public class FeatureDetection extends Filter {
 		}
 	}
 
+	private void displayPoints(Mat image, MatOfPoint fromPoints) {
+		if (fromPoints == null)
+			return;
+
+		int fromPointsSize = fromPoints.cols() * fromPoints.rows();
+		for (int i = 0; i < fromPointsSize; i++) {
+
+			Point from = fromPoints.toArray()[i];
+
+			from.x *= factor;
+			from.y *= factor;
+
+			Core.circle(image, from, 8, redScalar, 10);
+		}
+	}
+
 	public class ShootingPoint {
 		Point from;
 		Point to;
 		float angle;
 		float distance;
 		float speed;
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		float[] values = event.values;
+		float maxValue = Math.max(Math.max(Math.abs(values[0]), Math.abs(values[1])), Math.abs(values[2]));
+
+		if (maxValue > 0.8f) {
+			Log.e("", "bigger value");
+			tracker.resetCounter();
+			processAllowed = false;
+			counter = 0;
+		} else {
+			if (processAllowed == false)
+				tracker.restart();
+			processAllowed = true;
+		}
 	}
 }

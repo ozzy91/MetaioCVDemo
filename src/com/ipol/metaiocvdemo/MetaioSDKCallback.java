@@ -34,7 +34,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		this.activity = activity;
 		this.sdk = sdk;
 		goalDetectionFilter = new GoalDetectionFilter();
-		featureDetection = new FeatureDetection();
+		featureDetection = new FeatureDetection(activity);
 		markerPaint = new Paint();
 		markerPaint.setColor(Color.parseColor("#ff0000"));
 	}
@@ -86,8 +86,6 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 
 		@Override
 		protected Void doInBackground(Void... params) {
-			long starttime = System.currentTimeMillis();
-			
 			Mat mat = getMat(cameraFrame);
 //			bitmap = goalDetectionFilter.processFrame(mat);
 			bitmap = featureDetection.processFrame(mat);
@@ -95,7 +93,6 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 			if (bitmap != null)
 				activity.updatePreview(bitmap);
 
-//			Log.e("timer", "finished after " + (System.currentTimeMillis() - starttime));
 			return null;
 		}
 	}

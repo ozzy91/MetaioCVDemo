@@ -77,6 +77,10 @@ public class FeatureTracker {
 		return points[1];
 	}
 
+	public MatOfPoint getFeatures() {
+		return features;
+	}
+
 	public void restart() {
 		resetCounter();
 		points[0] = new MatOfPoint2f();
@@ -95,7 +99,6 @@ public class FeatureTracker {
 		if (blurrFactor != 0)
 			Imgproc.medianBlur(gray, gray, blurrFactor);
 
-		long starttime2 = System.currentTimeMillis();
 		if (addNewPoints()) {
 			// detect feature points
 			detectFeaturePoints();
@@ -110,14 +113,6 @@ public class FeatureTracker {
 				array[i] = tmpList.get(i);
 			points[0] = new MatOfPoint2f(array);
 
-			// tmpList.clear();
-			// tmpList.addAll(initial.toList());
-			// tmpList.addAll(features.toList());
-			// initial.insert(initial.end(),features.begin(),features.end());
-			// array = new Point[tmpList.size()];
-			// for (int i = 0; i < tmpList.size(); i++)
-			// array[i] = tmpList.get(i);
-			// initial = new MatOfPoint(array);
 			initial.addAll(features.toList());
 
 			ArrayList<Float> frames = new ArrayList<Float>();
@@ -127,7 +122,6 @@ public class FeatureTracker {
 			}
 			history.addAll(frames);
 		}
-		Log.e("timer", "addNewPoints finished after " + (System.currentTimeMillis() - starttime2));
 
 		// for first image of the sequence
 		if (grayPrev.empty())
@@ -148,7 +142,6 @@ public class FeatureTracker {
 			frames2.add(counter / 1f);
 		}
 		historyEnd = frames2;
-		long starttime5 = System.currentTimeMillis();
 
 		// 2. loop over the tracked points to reject the undesirables
 		int k = 0;
@@ -159,14 +152,6 @@ public class FeatureTracker {
 			if (acceptTrackedPoint(i)) {
 
 				// keep this point in vector
-				// initial[k] = initial[i];
-				// points[1][k++] = points[1][i];
-				// history[k - 1] = history[i];
-
-				// Point[] array = initial.toArray();
-				// Log.v(TAG, "initial array length: "+array.length);
-				// array[k] = array[i];
-				// initial = new MatOfPoint(array);
 				initial.set(k, initial.get(i));
 				Point[] array = points[1].toArray();
 				array[k++] = array[i];
@@ -174,28 +159,14 @@ public class FeatureTracker {
 				history.set(k - 1, history.get(i));
 			}
 		}
-		Log.e("timer", "loop finished after " + (System.currentTimeMillis() - starttime5));
 
 		// eliminate unsuccesful points
 
-		// points[1] = new MatOfPoint2f((Point[])
-		// points[1].toList().subList(0, k).toArray());
 		List<Point> tmpList = points[1].toList().subList(0, k);
 		Point[] array = new Point[tmpList.size()];
 		for (int i = 0; i < tmpList.size(); i++)
 			array[i] = tmpList.get(i);
 		points[1] = new MatOfPoint2f(array);
-
-		// initial = new MatOfPoint((Point[]) initial.toList().subList(0,
-		// k).toArray());
-
-		// tmpList = initial.toList().subList(0, k);
-		// array = new Point[tmpList.size()];
-		// for (int i = 0; i < tmpList.size(); i++)
-		// array[i] = tmpList.get(i);
-		// initial = new MatOfPoint(array);
-		// List<Point> sublist = initial.subList(k, initial.size());
-		// initial.removeAll(sublist);
 
 		Iterator<Point> iter = initial.iterator();
 		int index = 0;
@@ -229,13 +200,14 @@ public class FeatureTracker {
 		MatOfPoint2f tmp = points[0];
 		points[0] = points[1];
 		points[1] = tmp;
+
 		Mat tmpMat = grayPrev;
 		grayPrev = gray;
 		gray = tmpMat;
 	}
 
 	public boolean acceptTrackedPoint(int i) {
-		return ((Byte) status.toArray()[i]).toString().equals("0") &&
+		return ((Byte) status.toArray()[i]).toString().equals("1") &&
 		// if point has moved
 				(Math.abs(points[0].toArray()[i].x - points[1].toArray()[i].x)
 						+ (Math.abs(points[0].toArray()[i].y - points[1].toArray()[i].y)) > 1);
