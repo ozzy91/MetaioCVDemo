@@ -41,10 +41,10 @@ public class MetaioActivity extends ARViewActivity {
 	public void onSurfaceCreated() {
 		super.onSurfaceCreated();
 		// Setup auto-focus
-        Camera camera = IMetaioSDKAndroid.getCamera(this);
-        Camera.Parameters params = camera.getParameters();
-        params.setFocusMode("continuous-picture");
-        camera.setParameters(params);
+//        Camera camera = IMetaioSDKAndroid.getCamera(this);
+//        Camera.Parameters params = camera.getParameters();
+//        params.setFocusMode("continuous-picture");
+//        camera.setParameters(params);
 	}
 
 	@Override
