@@ -91,22 +91,22 @@ public class FeatureTracker {
 		grayPrev.release();
 	}
 
+	int frameWithSamePoints = 0;
+	
 	public void process(Mat frame, Mat output) {
+		frameWithSamePoints++;
+//		Log.e(TAG, "frames: "+frameWithSamePoints);
 		minDist = 10;
 		maxCount = 500;
 
-		long starttimetotal = System.currentTimeMillis();
-		long starttime = System.currentTimeMillis();
 		Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
 		if (blurrFactor != 0)
 			Imgproc.medianBlur(gray, gray, blurrFactor);
-		long firsttime = System.currentTimeMillis() - starttime;
 
 		if (addNewPoints()) {
+			frameWithSamePoints = 0;
 			// detect feature points
-			long detecttime = System.currentTimeMillis();
 			detectFeaturePoints();
-			firsttime += System.currentTimeMillis() - detecttime;
 
 			// add the detected features to the currently tracked features
 			ArrayList<Point> tmpList = new ArrayList<Point>();
@@ -135,13 +135,11 @@ public class FeatureTracker {
 		if ((points[0].cols() * points[0].rows()) == 0)
 			return;
 
-		starttime = System.currentTimeMillis();
 		Video.calcOpticalFlowPyrLK(grayPrev, gray, // 2 consecutive images
 				points[0], // input point position in first image
 				points[1], // output point postion in the second image
 				status, // tracking success
 				err, new Size(40, 40), 5); // tracking error
-//		Log.e("timer", "opencv finished after " + (System.currentTimeMillis() - starttime + firsttime));
 
 		ArrayList<Float> frames2 = new ArrayList<Float>();
 		int historySize = history.size();
@@ -153,7 +151,6 @@ public class FeatureTracker {
 		// 2. loop over the tracked points to reject the undesirables
 		int k = 0;
 		int numberOfPoints = points[1].cols() * points[1].rows();
-		long starttime1 = System.currentTimeMillis();
 		
 		byte[] statusArray = status.toArray();
 		Point[] points0Array = points[0].toArray();
@@ -176,7 +173,6 @@ public class FeatureTracker {
 				history.set(k - 1, history.get(i));
 			}
 		}
-//		Log.e("timer", "loop finished after " + (System.currentTimeMillis() - starttime1));
 
 		// eliminate unsuccesful points
 
@@ -195,6 +191,8 @@ public class FeatureTracker {
 			index++;
 		}
 
+//		Log.e(TAG, "initials size: "+initial.size());
+		
 		history = history.subList(0, k);
 
 		counter++;
@@ -203,7 +201,6 @@ public class FeatureTracker {
 			Log.e(TAG, "restart");
 			restart();
 		}
-//		Log.e("timer", "finished after " + (System.currentTimeMillis() - starttimetotal));
 	}
 
 	public void detectFeaturePoints() {
@@ -211,6 +208,7 @@ public class FeatureTracker {
 	}
 
 	public boolean addNewPoints() {
+		System.out.println("points size: "+(points[0].cols() * points[0].rows()));
 		return (points[0].cols() * points[0].rows()) <= 8;
 	}
 
@@ -229,7 +227,7 @@ public class FeatureTracker {
 		return ((Byte) status.toArray()[i]).toString().equals("1") &&
 		// if point has moved
 				(Math.abs(points[0].toArray()[i].x - points[1].toArray()[i].x)
-						+ (Math.abs(points[0].toArray()[i].y - points[1].toArray()[i].y)) > 3);
+						+ (Math.abs(points[0].toArray()[i].y - points[1].toArray()[i].y)) > 2);
 	}
 
 }

@@ -83,7 +83,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 		Size filterSize = image.size();
 		Size newSize = new Size(filterSize.width / factor, filterSize.height / factor);
-		System.out.println(newSize);
 
 		int ballRadius = Math.round((150 * 1.2f) / factor);
 
@@ -114,8 +113,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 		if (DEBUG) {
 			displayPoints(image, initial, points);
-//			displayPoints(image, points);
-//			displayPoints(image, initial);
+			displayPoints(image, points);
+			displayPoints(image, initial);
 		}
 
 		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
@@ -143,8 +142,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		int numberOfMissPoints = 0;
 		double averageRight = 0;
 		
-		long starttime = System.currentTimeMillis();
-
 		// get all points inside the ball radius
 		for (int i = 0; i < numberOfPoints; i++) {
 
@@ -203,8 +200,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			}
 		}
 		
-		Log.e("timer", "loop of points finished after " + (System.currentTimeMillis() - starttime));
-
 		float averageDistanceMiss = 0;
 
 		for (int i = 0; i < numberOfMissPoints; i++) {
@@ -475,7 +470,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			from.x *= factor;
 			from.y *= factor;
 
-			Core.circle(image, from, 6, redScalar, 8);
+			Core.circle(image, from, 4, redScalar, 6);
 		}
 	}
 	
@@ -490,7 +485,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			from.x *= factor;
 			from.y *= factor;
 
-			Core.circle(image, from, 6, blueScalar, 8);
+			Core.circle(image, from, 4, blueScalar, 6);
 		}
 	}
 

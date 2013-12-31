@@ -89,7 +89,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 //			bitmap = goalDetectionFilter.processFrame(mat);
 			long starttime = System.currentTimeMillis();
 			bitmap = featureDetection.processFrame(mat);
-			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
+//			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
 
 			if (bitmap != null)
 				activity.updatePreview(bitmap);
