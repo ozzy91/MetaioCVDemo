@@ -7,7 +7,6 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -27,30 +26,31 @@ import com.ipol.metaiocvdemo.DisplayHelper;
 
 public class FeatureDetection extends Filter implements SensorEventListener {
 
-	private static final int factor = 6;
+	private static final int factor = 5;
 	private static final boolean DEBUG = true;
 
 	private Bitmap bmp;
 	private Scalar pinkScalar = new Scalar(255, 0, 255);
 	private Scalar yellowScalar = new Scalar(255, 255, 0);
 	private Scalar redScalar = new Scalar(255, 0, 0);
+	private Scalar blueScalar = new Scalar(0, 0, 255);
 	private Scalar clearScalar = new Scalar(0, 0, 0, 0);
 
 	private Point targetPoint;
 
 	private int blurrFactor = 9;
 	private List<Point> initial;
-	private MatOfPoint features;
-	private MatOfPoint initialFound;
-	private MatOfPoint toFound;
+//	private MatOfPoint features;
+//	private MatOfPoint initialFound;
+//	private MatOfPoint toFound;
 	private MatOfPoint2f points;
 	private MatOfPoint2f previousPoints;
 	private Point target;
 	private Point hitPointFrom;
 	private Point hitPointTo;
 
-	private List<Float> history;
-	private List<Float> historyEnd;
+//	private List<Float> history;
+//	private List<Float> historyEnd;
 
 	private FeatureTracker tracker;
 	private boolean processAllowed;
@@ -83,6 +83,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 		Size filterSize = image.size();
 		Size newSize = new Size(filterSize.width / factor, filterSize.height / factor);
+		System.out.println(newSize);
 
 		int ballRadius = Math.round((150 * 1.2f) / factor);
 
@@ -108,11 +109,13 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		points = tracker.getCurrentPoints();
 		previousPoints = tracker.getPreviousPoints();
 
-		history = tracker.history;
-		historyEnd = tracker.historyEnd;
+//		history = tracker.history;
+//		historyEnd = tracker.historyEnd;
 
 		if (DEBUG) {
-			displayPoints(resultMat, initial, points);
+			displayPoints(image, initial, points);
+//			displayPoints(image, points);
+//			displayPoints(image, initial);
 		}
 
 		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
@@ -133,26 +136,28 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		ArrayList<ShootingPoint> hitPointsTo = new ArrayList<ShootingPoint>();
 		ArrayList<ShootingPoint> missPoints = new ArrayList<ShootingPoint>();
 
-		float frameAverage = 0;
+//		float frameAverage = 0;
 
 		int numberOfFoundPoints = 0;
 		int numberOfHitPoints = 0;
 		int numberOfMissPoints = 0;
 		double averageRight = 0;
+		
+		long starttime = System.currentTimeMillis();
 
 		// get all points inside the ball radius
 		for (int i = 0; i < numberOfPoints; i++) {
 
 			Point p = points.toArray()[i];
 			Point initialPoint = initial.get(i);
-			Point prevoisPpint = previousPoints.toArray()[i];
+			Point previousPoint = previousPoints.toArray()[i];
 
-			float frameStart = 0;
-			if (history.size() > i)
-				frameStart = history.get(i);
-			float frameEnd = 0;
-			if (historyEnd.size() > i)
-				frameEnd = historyEnd.get(i);
+//			float frameStart = 0;
+//			if (history.size() > i)
+//				frameStart = history.get(i);
+//			float frameEnd = 0;
+//			if (historyEnd.size() > i)
+//				frameEnd = historyEnd.get(i);
 
 			if (numberOfInitials > i) {
 
@@ -161,8 +166,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 				float shootingDistance = (float) Math.sqrt(Math.pow(p.x * factorX - initialPoint.x * factorX, 2)
 						+ Math.pow(p.y * factorX - initialPoint.y * factorX, 2));
-				float speed = (float) Math.sqrt(Math.pow(p.x * factorX - prevoisPpint.x * factorX, 2)
-						+ Math.pow(p.y * factorY - prevoisPpint.y * factorY, 2));
+				float speed = (float) Math.sqrt(Math.pow(p.x * factorX - previousPoint.x * factorX, 2)
+						+ Math.pow(p.y * factorY - previousPoint.y * factorY, 2));
 
 				boolean outsideBall = Math.pow((p.x - target.x), 2) + Math.pow((p.y - target.y), 2) < Math.pow(
 						ballRadius * 2, 2);
@@ -185,7 +190,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 					if (insideBall) {
 						hitPointsTo.add(shootingPoint);
-						frameAverage += (frameEnd - frameStart);
+//						frameAverage += (frameEnd - frameStart);
 						numberOfHitPoints++;
 					}
 
@@ -197,6 +202,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 				}
 			}
 		}
+		
+		Log.e("timer", "loop of points finished after " + (System.currentTimeMillis() - starttime));
 
 		float averageDistanceMiss = 0;
 
@@ -213,7 +220,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 				Point p = points.toArray()[i];
 				Point initialPoint = initial.get(i);
-				Point prevoisPpint = previousPoints.toArray()[i];
+				Point previousPoint = previousPoints.toArray()[i];
 
 				boolean intersects = circleLineIntersect(initialPoint.x, initialPoint.y, p.x, p.y, target.x, target.y,
 						ballRadius);
@@ -224,8 +231,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 					float shootingDistance = (float) Math.sqrt(Math.pow(p.x * factorX - initialPoint.x * factorX, 2)
 							+ Math.pow(p.y * factorY - initialPoint.y * factorY, 2));
-					float speed = (float) Math.sqrt(Math.pow(p.x * factorX - prevoisPpint.x * factorX, 2)
-							+ Math.pow(p.y * factorY - prevoisPpint.y * factorY, 2));
+					float speed = (float) Math.sqrt(Math.pow(p.x * factorX - previousPoint.x * factorX, 2)
+							+ Math.pow(p.y * factorY - previousPoint.y * factorY, 2));
 
 					Core.line(image, drawablePoint(p), drawablePoint(p), pinkScalar, 10);
 
@@ -249,7 +256,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			}
 		}
 
-		frameAverage /= numberOfHitPoints;
+//		frameAverage /= numberOfHitPoints;
 
 		float averageAngle = 0;
 		float averageDistance = 0;
@@ -407,10 +414,10 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		// });
 
 		tracker.swapPoints();
-
+		
 		if (DEBUG) {
 			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
-			Utils.matToBitmap(resultMat, bmp);
+			Utils.matToBitmap(image, bmp);
 		}
 
 		return bmp;
@@ -456,7 +463,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		}
 	}
 
-	private void displayPoints(Mat image, MatOfPoint fromPoints) {
+	private void displayPoints(Mat image, MatOfPoint2f fromPoints) {
 		if (fromPoints == null)
 			return;
 
@@ -468,7 +475,22 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			from.x *= factor;
 			from.y *= factor;
 
-			Core.circle(image, from, 8, redScalar, 10);
+			Core.circle(image, from, 6, redScalar, 8);
+		}
+	}
+	
+	private void displayPoints(Mat image, List<Point> fromPoints) {
+		if (fromPoints == null)
+			return;
+
+		for (int i = 0; i < fromPoints.size(); i++) {
+
+			Point from = fromPoints.get(i);
+
+			from.x *= factor;
+			from.y *= factor;
+
+			Core.circle(image, from, 6, blueScalar, 8);
 		}
 	}
 

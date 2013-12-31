@@ -25,7 +25,6 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	private GoalDetectionFilter goalDetectionFilter;
 	private FeatureDetection featureDetection;
 
-	private Bitmap bitmap;
 	private Paint markerPaint;
 
 	private int frameCount = 0;
@@ -44,7 +43,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onNewCameraFrame(cameraFrame);
 		frameCount++;
 
-		if (frameCount % 5 == 0) {
+		if (frameCount % 2 == 0) {
 			activity.updateFramerate();
 			new ConvertTask(cameraFrame).execute();
 			
@@ -88,7 +87,9 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		protected Void doInBackground(Void... params) {
 			Mat mat = getMat(cameraFrame);
 //			bitmap = goalDetectionFilter.processFrame(mat);
+			long starttime = System.currentTimeMillis();
 			bitmap = featureDetection.processFrame(mat);
+			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
 
 			if (bitmap != null)
 				activity.updatePreview(bitmap);
