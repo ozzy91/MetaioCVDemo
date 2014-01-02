@@ -112,9 +112,9 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 //		historyEnd = tracker.historyEnd;
 
 		if (DEBUG) {
-			displayPoints(image, initial, points);
-			displayPoints(image, points);
-			displayPoints(image, initial);
+			displayPoints(resultMat, initial, points);
+//			displayPoints(image, points);
+//			displayPoints(image, initial);
 		}
 
 		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
@@ -396,7 +396,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 			counter = 0;
 
-			tracker.restart();
+//			System.out.println("valid shot");
+//			tracker.restart();
 
 			// if ([self.delegate
 			// respondsToSelector:@selector(filter:didHitTargetWithSpeed:atPoint:withMoveVector:)])
@@ -412,7 +413,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		
 		if (DEBUG) {
 			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
-			Utils.matToBitmap(image, bmp);
+			Utils.matToBitmap(resultMat, bmp);
 		}
 
 		return bmp;
@@ -442,11 +443,12 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 	private void displayPoints(Mat image, List<Point> fromPoints, MatOfPoint2f toPoints) {
 
+		Point[] toPointsArray = toPoints.toArray();
 		int fromPointsSize = fromPoints.size();
 		for (int i = 0; i < fromPointsSize; i++) {
 
 			Point from = fromPoints.get(i);
-			Point to = toPoints.toArray()[i];
+			Point to = toPointsArray[i];
 
 			from.x *= factor;
 			from.y *= factor;
@@ -454,7 +456,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			to.x *= factor;
 			to.y *= factor;
 
-			Core.line(image, from, to, yellowScalar, 10);
+			Core.line(image, from, to, yellowScalar, 4);
 		}
 	}
 
@@ -462,10 +464,11 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		if (fromPoints == null)
 			return;
 
+		Point[] fromPointsArray = fromPoints.toArray();
 		int fromPointsSize = fromPoints.cols() * fromPoints.rows();
 		for (int i = 0; i < fromPointsSize; i++) {
 
-			Point from = fromPoints.toArray()[i];
+			Point from = fromPointsArray[i];
 
 			from.x *= factor;
 			from.y *= factor;

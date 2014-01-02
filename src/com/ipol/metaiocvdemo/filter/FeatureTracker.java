@@ -14,8 +14,6 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
-import android.util.Log;
-
 public class FeatureTracker {
 
 	private static final String TAG = "FeatureTracker";
@@ -34,8 +32,8 @@ public class FeatureTracker {
 	private MatOfFloat err; // error in tracking
 
 	public boolean useFarnback;
-	public List<Float> history;
-	public List<Float> historyEnd;
+	// public List<Float> history;
+	// public List<Float> historyEnd;
 
 	public Point targetPoint;
 
@@ -56,17 +54,20 @@ public class FeatureTracker {
 		points[1] = new MatOfPoint2f();
 		initial = new ArrayList<Point>();
 		features = new MatOfPoint();
-		history = new ArrayList<Float>();
-		historyEnd = new ArrayList<Float>();
+		// history = new ArrayList<Float>();
+		// historyEnd = new ArrayList<Float>();
 	}
 
 	public void resetCounter() {
 		this.counter = 0;
-		this.history.clear();
+		// this.history.clear();
 	}
 
 	public List<Point> getInitials() {
-		return initial;
+		ArrayList<Point> copy = new ArrayList<Point>();
+		for (Point point : initial)
+			copy.add(point.clone());
+		return copy;
 	}
 
 	public MatOfPoint2f getPreviousPoints() {
@@ -87,15 +88,11 @@ public class FeatureTracker {
 		points[1] = new MatOfPoint2f();
 		initial = new ArrayList<Point>();
 		features = new MatOfPoint();
-		historyEnd.clear();
+		// historyEnd.clear();
 		grayPrev.release();
 	}
 
-	int frameWithSamePoints = 0;
-	
 	public void process(Mat frame, Mat output) {
-		frameWithSamePoints++;
-//		Log.e(TAG, "frames: "+frameWithSamePoints);
 		minDist = 10;
 		maxCount = 500;
 
@@ -104,7 +101,6 @@ public class FeatureTracker {
 			Imgproc.medianBlur(gray, gray, blurrFactor);
 
 		if (addNewPoints()) {
-			frameWithSamePoints = 0;
 			// detect feature points
 			detectFeaturePoints();
 
@@ -120,12 +116,12 @@ public class FeatureTracker {
 
 			initial.addAll(features.toList());
 
-			ArrayList<Float> frames = new ArrayList<Float>();
-			int pointsSize = points[0].cols() * points[0].rows();
-			for (int i = 0; i < pointsSize; i++) {
-				frames.add(counter / 1f);
-			}
-			history.addAll(frames);
+			// ArrayList<Float> frames = new ArrayList<Float>();
+			// int pointsSize = points[0].cols() * points[0].rows();
+			// for (int i = 0; i < pointsSize; i++) {
+			// frames.add(counter / 1f);
+			// }
+			// history.addAll(frames);
 		}
 
 		// for first image of the sequence
@@ -141,21 +137,21 @@ public class FeatureTracker {
 				status, // tracking success
 				err, new Size(40, 40), 5); // tracking error
 
-		ArrayList<Float> frames2 = new ArrayList<Float>();
-		int historySize = history.size();
-		for (int i = 0; i < historySize; i++) {
-			frames2.add(counter / 1f);
-		}
-		historyEnd = frames2;
+		// ArrayList<Float> frames2 = new ArrayList<Float>();
+		// int historySize = history.size();
+		// for (int i = 0; i < historySize; i++) {
+		// frames2.add(counter / 1f);
+		// }
+		// historyEnd = frames2;
 
 		// 2. loop over the tracked points to reject the undesirables
 		int k = 0;
 		int numberOfPoints = points[1].cols() * points[1].rows();
-		
+
 		byte[] statusArray = status.toArray();
 		Point[] points0Array = points[0].toArray();
 		Point[] points1Array = points[1].toArray();
-		
+
 		for (int i = 0; i < numberOfPoints; i++) {
 
 			// do we keep this point?
@@ -163,14 +159,14 @@ public class FeatureTracker {
 			// if point has moved
 					(Math.abs(points0Array[i].x - points1Array[i].x)
 							+ (Math.abs(points0Array[i].y - points1Array[i].y)) > 3);
-			if (acceptTrackedPoint) {
 
+			if (acceptTrackedPoint) {
 				// keep this point in vector
 				initial.set(k, initial.get(i));
 				Point[] array = points[1].toArray();
 				array[k++] = array[i];
 				points[1] = new MatOfPoint2f(array);
-				history.set(k - 1, history.get(i));
+				// history.set(k - 1, history.get(i));
 			}
 		}
 
@@ -191,16 +187,9 @@ public class FeatureTracker {
 			index++;
 		}
 
-//		Log.e(TAG, "initials size: "+initial.size());
-		
-		history = history.subList(0, k);
+		// history = history.subList(0, k);
 
 		counter++;
-
-		if (counter > 50) {
-			Log.e(TAG, "restart");
-			restart();
-		}
 	}
 
 	public void detectFeaturePoints() {
@@ -208,7 +197,6 @@ public class FeatureTracker {
 	}
 
 	public boolean addNewPoints() {
-		System.out.println("points size: "+(points[0].cols() * points[0].rows()));
 		return (points[0].cols() * points[0].rows()) <= 8;
 	}
 
@@ -221,13 +209,6 @@ public class FeatureTracker {
 		Mat tmpMat = grayPrev;
 		grayPrev = gray;
 		gray = tmpMat;
-	}
-
-	public boolean acceptTrackedPoint(int i) {
-		return ((Byte) status.toArray()[i]).toString().equals("1") &&
-		// if point has moved
-				(Math.abs(points[0].toArray()[i].x - points[1].toArray()[i].x)
-						+ (Math.abs(points[0].toArray()[i].y - points[1].toArray()[i].y)) > 2);
 	}
 
 }
