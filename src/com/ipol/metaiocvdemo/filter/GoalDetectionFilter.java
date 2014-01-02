@@ -22,7 +22,6 @@ import android.graphics.Path;
 
 import com.ipol.metaiocvdemo.DisplayHelper;
 
-
 public class GoalDetectionFilter extends Filter {
 
 	private static final int factor = 4;
@@ -42,13 +41,13 @@ public class GoalDetectionFilter extends Filter {
 	private List<Marker> possibleMarkers = new ArrayList<Marker>();
 
 	private int m_minContourLengthAllowed;
-	
+
 	public GoalDetectionFilter() {
 		super();
 		markerPaint = new Paint();
 		markerPaint.setColor(Color.parseColor("#ff0000"));
 	}
-	
+
 	private Size filterSize;
 
 	@Override
@@ -69,9 +68,9 @@ public class GoalDetectionFilter extends Filter {
 		Imgproc.resize(bigImage, image, newSize);
 
 		detectWithWhiteMethod(image);
-		
+
 		// }
-		
+
 		if (DEBUG) {
 			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
 			drawMarkers(possibleMarkers, bmp);
@@ -95,24 +94,26 @@ public class GoalDetectionFilter extends Filter {
 		findContoursInImage(mThresholdImage, mContours, mGrayscaleImage.cols() / 5);
 
 		if (mContours.size() > 0) {
-			
+
 			MatOfInt mOi = null;
 			int[] intlist;
 			Point[] l;
 			for (int i = 0; i < mContours.size(); i++) {
 
+				MatOfPoint contour = mContours.get(i);
+				List<Point> contourPoints = contour.toList();
 				mOi = new MatOfInt();
-				Imgproc.convexHull(mContours.get(i), mOi);
+				Imgproc.convexHull(contour, mOi);
 				intlist = mOi.toArray();
 				l = new Point[intlist.length];
 				for (int j = 0; j < intlist.length; j++)
-					l[j] = (mContours.get(i).toList().get(mOi.toList().get(j)));
+					l[j] = (contourPoints.get(intlist[j]));
 
 				hull.add(new MatOfPoint(l));
 			}
 		}
 
-		 findCandidates(hull, possibleMarkers);
+		findCandidates(hull, possibleMarkers);
 	}
 
 	public void performThreshold(Mat grayscale, Mat thresholdImg) {
@@ -140,8 +141,8 @@ public class GoalDetectionFilter extends Filter {
 
 	public void findCandidates(List<MatOfPoint> contours, List<Marker> detectedMarkers) {
 
-//		float xFactor = (float) (referenceFrame.size().width / size.width);
-//		float yFactor = (float) (referenceFrame.size().height / size.height);
+		// float xFactor = (float) (referenceFrame.size().width / size.width);
+		// float yFactor = (float) (referenceFrame.size().height / size.height);
 		float xFactor = factor;
 		float yFactor = factor;
 
@@ -266,14 +267,14 @@ public class GoalDetectionFilter extends Filter {
 				ratio = height / width;
 			}
 
-//			 if (ratio >= [[VFSettings sharedSettings] goalRatio]) {
-//			 continue;
-//			 }
+			// if (ratio >= [[VFSettings sharedSettings] goalRatio]) {
+			// continue;
+			// }
 
-//			 exclude big rectangles
-//			 if (width > [[VFSettings sharedSettings] maximumGoalWidth]) {
-//			 continue;
-//			 }
+			// exclude big rectangles
+			// if (width > [[VFSettings sharedSettings] maximumGoalWidth]) {
+			// continue;
+			// }
 
 			// All tests are passed. Save marker candidate:
 			Marker m = new Marker();
@@ -301,7 +302,7 @@ public class GoalDetectionFilter extends Filter {
 
 			_possibleMarkers.add(m);
 		}
-		
+
 		// if (approxPoly.size() > 0)
 		// cv::drawContours(m_grayscaleImage, approxPoly, -1, cv::Scalar(255,
 		// 255, 9));
@@ -355,9 +356,9 @@ public class GoalDetectionFilter extends Filter {
 			if (!removalMask[i])
 				possibleMarkers.add(_possibleMarkers.get(i));
 		}
-		
+
 	}
-	
+
 	public void drawMarkers(List<Marker> markers, Bitmap bmp) {
 
 		Canvas canvas = new Canvas(bmp);
