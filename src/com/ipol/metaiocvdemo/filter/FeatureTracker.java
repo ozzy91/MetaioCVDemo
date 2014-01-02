@@ -96,7 +96,8 @@ public class FeatureTracker {
 		minDist = 10;
 		maxCount = 500;
 
-		Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
+//		Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
+		frame.copyTo(gray);
 		if (blurrFactor != 0)
 			Imgproc.medianBlur(gray, gray, blurrFactor);
 

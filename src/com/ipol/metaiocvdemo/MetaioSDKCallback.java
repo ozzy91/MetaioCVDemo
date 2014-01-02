@@ -1,13 +1,9 @@
 package com.ipol.metaiocvdemo;
 
-import org.opencv.android.Utils;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Size;
 
 import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.AsyncTask;
@@ -24,7 +20,6 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	private MetaioActivity activity;
 	private IMetaioSDKAndroid sdk;
 
-	private Bitmap bmp;
 	private Mat mat;
 
 	private GoalDetectionFilter goalDetectionFilter;
@@ -33,6 +28,8 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	private Paint markerPaint;
 
 	private int frameCount = 0;
+	private long totalDuration;
+	private int count;
 
 	public MetaioSDKCallback(MetaioActivity activity, IMetaioSDKAndroid sdk) {
 		this.activity = activity;
@@ -66,29 +63,14 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onSDKReady();
 	}
 
-	long totalDuration;
-	int count;
-
 	public Mat getMat(ImageStruct src) {
-		// bmp = src.getBitmap();
-		BitmapFactory.Options bmo = new BitmapFactory.Options();
-		bmo.inPreferredConfig = Config.RGB_565;
 
-		long starttime = System.currentTimeMillis();
-		byte[] buffer = src.compress(40).getBuffer();
-		totalDuration += System.currentTimeMillis() - starttime;
-		count++;
-		// Log.e("timer", "compression average " + (totalDuration / count));
-		bmp = BitmapFactory.decodeByteArray(buffer, 0, buffer.length, bmo);
+		int width = src.getWidth();
+		int height = src.getHeight();
+		byte[] buffer = src.getBuffer();
+		mat = new Mat(height, width, CvType.CV_8UC1);
+		mat.put(0, 0, buffer);
 
-		if (mat == null) {
-			int width = src.getWidth();
-			int height = src.getHeight();
-			mat = new Mat(new Size(width, height), CvType.CV_8UC4);
-		}
-		if (bmp != null) {
-			Utils.bitmapToMat(bmp, mat, false);
-		}
 		return mat;
 	}
 
@@ -106,8 +88,8 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 			Mat mat = getMat(cameraFrame);
 
 			long starttime = System.currentTimeMillis();
-			// bitmap = goalDetectionFilter.processFrame(mat);
-			bitmap = featureDetection.processFrame(mat);
+			 bitmap = goalDetectionFilter.processFrame(mat);
+//			bitmap = featureDetection.processFrame(mat);
 			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
 
 			if (bitmap != null)

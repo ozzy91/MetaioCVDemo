@@ -19,6 +19,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.util.Log;
 
 import com.ipol.metaiocvdemo.DisplayHelper;
 
@@ -86,7 +87,8 @@ public class GoalDetectionFilter extends Filter {
 
 		hull.clear();
 
-		Imgproc.cvtColor(image, mGrayscaleImage, Imgproc.COLOR_BGRA2GRAY);
+//		Imgproc.cvtColor(image, mGrayscaleImage, Imgproc.COLOR_BGRA2GRAY);
+		image.copyTo(mGrayscaleImage);
 		Imgproc.medianBlur(mGrayscaleImage, mGrayscaleImage, 0);
 		Imgproc.adaptiveThreshold(mGrayscaleImage, mThresholdImage, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C,
 				Imgproc.THRESH_BINARY_INV, 7, 7);
@@ -98,19 +100,22 @@ public class GoalDetectionFilter extends Filter {
 			MatOfInt mOi = null;
 			int[] intlist;
 			Point[] l;
+			
+//			long starttime = System.currentTimeMillis();
 			for (int i = 0; i < mContours.size(); i++) {
 
 				MatOfPoint contour = mContours.get(i);
-				List<Point> contourPoints = contour.toList();
+				Point[] contourPoints = contour.toArray();
 				mOi = new MatOfInt();
 				Imgproc.convexHull(contour, mOi);
 				intlist = mOi.toArray();
 				l = new Point[intlist.length];
 				for (int j = 0; j < intlist.length; j++)
-					l[j] = (contourPoints.get(intlist[j]));
+					l[j] = contourPoints[intlist[j]];
 
 				hull.add(new MatOfPoint(l));
 			}
+//			Log.e("timer", "loop finished after " + (System.currentTimeMillis() - starttime));
 		}
 
 		findCandidates(hull, possibleMarkers);
