@@ -6,6 +6,8 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.AsyncTask;
@@ -21,6 +23,9 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 
 	private MetaioActivity activity;
 	private IMetaioSDKAndroid sdk;
+
+	private Bitmap bmp;
+	private Mat mat;
 
 	private GoalDetectionFilter goalDetectionFilter;
 	private FeatureDetection featureDetection;
@@ -46,12 +51,12 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		if (frameCount % 2 == 0) {
 			activity.updateFramerate();
 			new ConvertTask(cameraFrame).execute();
-			
-//			Mat mat = getMat(cameraFrame);
-//			bitmap = goalDetectionFilter.processFrame(mat);
-//			bitmap = featureDetection.processFrame(mat);
-//			if (bitmap != null)
-//				activity.updatePreview(bitmap);
+
+			// Mat mat = getMat(cameraFrame);
+			// bitmap = goalDetectionFilter.processFrame(mat);
+			// bitmap = featureDetection.processFrame(mat);
+			// if (bitmap != null)
+			// activity.updatePreview(bitmap);
 		}
 		sdk.requestCameraImage();
 	}
@@ -61,13 +66,26 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onSDKReady();
 	}
 
-	private Bitmap bmp;
+	long totalDuration;
+	int count;
 
 	public Mat getMat(ImageStruct src) {
-		int width = src.getWidth();
-		int height = src.getHeight();
-		bmp = src.getBitmap();
-		Mat mat = new Mat(new Size(width, height), CvType.CV_8UC3);
+		// bmp = src.getBitmap();
+		BitmapFactory.Options bmo = new BitmapFactory.Options();
+		bmo.inPreferredConfig = Config.RGB_565;
+
+		long starttime = System.currentTimeMillis();
+		byte[] buffer = src.compress(40).getBuffer();
+		totalDuration += System.currentTimeMillis() - starttime;
+		count++;
+		// Log.e("timer", "compression average " + (totalDuration / count));
+		bmp = BitmapFactory.decodeByteArray(buffer, 0, buffer.length, bmo);
+
+		if (mat == null) {
+			int width = src.getWidth();
+			int height = src.getHeight();
+			mat = new Mat(new Size(width, height), CvType.CV_8UC4);
+		}
 		if (bmp != null) {
 			Utils.bitmapToMat(bmp, mat, false);
 		}
@@ -86,10 +104,11 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		@Override
 		protected Void doInBackground(Void... params) {
 			Mat mat = getMat(cameraFrame);
-//			bitmap = goalDetectionFilter.processFrame(mat);
+
 			long starttime = System.currentTimeMillis();
+			// bitmap = goalDetectionFilter.processFrame(mat);
 			bitmap = featureDetection.processFrame(mat);
-//			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
+			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
 
 			if (bitmap != null)
 				activity.updatePreview(bitmap);
