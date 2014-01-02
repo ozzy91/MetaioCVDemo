@@ -20,6 +20,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Vibrator;
 import android.util.Log;
 
 import com.ipol.metaiocvdemo.DisplayHelper;
@@ -33,24 +34,23 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 	private Scalar pinkScalar = new Scalar(255, 0, 255);
 	private Scalar yellowScalar = new Scalar(255, 255, 0);
 	private Scalar redScalar = new Scalar(255, 0, 0);
-	private Scalar blueScalar = new Scalar(0, 0, 255);
 	private Scalar clearScalar = new Scalar(0, 0, 0, 0);
 
 	private Point targetPoint;
 
 	private int blurrFactor = 9;
 	private List<Point> initial;
-//	private MatOfPoint features;
-//	private MatOfPoint initialFound;
-//	private MatOfPoint toFound;
+	// private MatOfPoint features;
+	// private MatOfPoint initialFound;
+	// private MatOfPoint toFound;
 	private MatOfPoint2f points;
 	private MatOfPoint2f previousPoints;
 	private Point target;
 	private Point hitPointFrom;
 	private Point hitPointTo;
 
-//	private List<Float> history;
-//	private List<Float> historyEnd;
+	// private List<Float> history;
+	// private List<Float> historyEnd;
 
 	private FeatureTracker tracker;
 	private boolean processAllowed;
@@ -58,6 +58,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 	private SensorManager mSensorManager;
 	private Sensor mSensor;
+	private Vibrator vibrator;
 
 	public FeatureDetection(Activity activity) {
 		tracker = new FeatureTracker();
@@ -69,6 +70,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		mSensorManager = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
 		mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 		mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+		vibrator = (Vibrator) activity.getSystemService(Context.VIBRATOR_SERVICE);
 
 		processAllowed = true;
 	}
@@ -108,13 +111,8 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		points = tracker.getCurrentPoints();
 		previousPoints = tracker.getPreviousPoints();
 
-//		history = tracker.history;
-//		historyEnd = tracker.historyEnd;
-
 		if (DEBUG) {
 			displayPoints(resultMat, initial, points);
-//			displayPoints(image, points);
-//			displayPoints(image, initial);
 		}
 
 		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
@@ -128,33 +126,29 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			Point to = hitPointTo;
 			Point from = hitPointFrom;
 
-			Core.line(image, from, to, pinkScalar, 10);
+			Core.line(resultMat, from, to, pinkScalar, 10);
 		}
 
 		ArrayList<ShootingPoint> nearPointsTo = new ArrayList<ShootingPoint>();
 		ArrayList<ShootingPoint> hitPointsTo = new ArrayList<ShootingPoint>();
 		ArrayList<ShootingPoint> missPoints = new ArrayList<ShootingPoint>();
 
-//		float frameAverage = 0;
+		// float frameAverage = 0;
 
 		int numberOfFoundPoints = 0;
 		int numberOfHitPoints = 0;
 		int numberOfMissPoints = 0;
 		double averageRight = 0;
-		
+
+		Point[] pointsArray = points.toArray();
+		Point[] previousPointsArray = previousPoints.toArray();
+
 		// get all points inside the ball radius
 		for (int i = 0; i < numberOfPoints; i++) {
 
-			Point p = points.toArray()[i];
+			Point p = pointsArray[i];
 			Point initialPoint = initial.get(i);
-			Point previousPoint = previousPoints.toArray()[i];
-
-//			float frameStart = 0;
-//			if (history.size() > i)
-//				frameStart = history.get(i);
-//			float frameEnd = 0;
-//			if (historyEnd.size() > i)
-//				frameEnd = historyEnd.get(i);
+			Point previousPoint = previousPointsArray[i];
 
 			if (numberOfInitials > i) {
 
@@ -187,7 +181,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 					if (insideBall) {
 						hitPointsTo.add(shootingPoint);
-//						frameAverage += (frameEnd - frameStart);
 						numberOfHitPoints++;
 					}
 
@@ -199,7 +192,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 				}
 			}
 		}
-		
+
 		float averageDistanceMiss = 0;
 
 		for (int i = 0; i < numberOfMissPoints; i++) {
@@ -213,9 +206,9 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		if (numberOfHitPoints == 0) {
 			for (int i = 0; i < numberOfPoints; i++) {
 
-				Point p = points.toArray()[i];
+				Point p = pointsArray[i];
 				Point initialPoint = initial.get(i);
-				Point previousPoint = previousPoints.toArray()[i];
+				Point previousPoint = previousPointsArray[i];
 
 				boolean intersects = circleLineIntersect(initialPoint.x, initialPoint.y, p.x, p.y, target.x, target.y,
 						ballRadius);
@@ -250,8 +243,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 			}
 		}
-
-//		frameAverage /= numberOfHitPoints;
 
 		float averageAngle = 0;
 		float averageDistance = 0;
@@ -381,23 +372,32 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		boolean numberOfHitPointsBiggerThenNumberOfMissPoints = (numberOfMissPoints / 1.5f) < numberOfFoundPoints;
 		boolean missedPointsLongEnough = averageDistanceMiss >= 42;
 
-		// System.out.println(angleValid + " angleValid");
-		// System.out.println(distanceValid + " distanceValid");
-		// System.out.println(minumumPointCountValid +
-		// " minumumPointCountValid");
-		// System.out.println("---------------");
-		// System.out.println("numberOfFramesReached: "+numberOfFramesReached);
-		// System.out.println("distanceToTargetValid: "+distanceToTargetValid);
-		// System.out.println("angleValid: "+angleValid);
-		// System.out.println("angleValid: "+angleValid);
+		if (!angleValid)
+			System.out.println(angleValid + " angleValid");
+		if (!distanceValid)
+			System.out.println(distanceValid + " distanceValid");
+		if (!minumumPointCountValid)
+			System.out.println(minumumPointCountValid + " minumumPointCountValid");
+		if (!distanceToTargetValid)
+			System.out.println(distanceToTargetValid + " distanceToTargetValid");
+		if (!(numberOfHitPoints > 0))
+			System.out.println((numberOfHitPoints > 0) + " numberOfHitPoints > 0");
+		if (!numberOfHitPointsBiggerThenNumberOfMissPoints)
+			System.out.println(numberOfHitPointsBiggerThenNumberOfMissPoints
+					+ " numberOfHitPointsBiggerThenNumberOfMissPoints");
+		if (!missedPointsLongEnough)
+			System.out.println(missedPointsLongEnough + " missedPointsLongEnough");
+		System.out.println("---------------");
 
 		if (angleValid && distanceValid && minumumPointCountValid && numberOfFramesReached && distanceToTargetValid
 				&& numberOfHitPoints > 0 && numberOfHitPointsBiggerThenNumberOfMissPoints && missedPointsLongEnough) {
 
 			counter = 0;
 
-//			System.out.println("valid shot");
-//			tracker.restart();
+			Log.e("", "valid shot");
+			vibrator.vibrate(100);
+
+			tracker.restart();
 
 			// if ([self.delegate
 			// respondsToSelector:@selector(filter:didHitTargetWithSpeed:atPoint:withMoveVector:)])
@@ -410,7 +410,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		// });
 
 		tracker.swapPoints();
-		
+
 		if (DEBUG) {
 			bmp = Bitmap.createBitmap((int) filterSize.width, (int) filterSize.height, Bitmap.Config.ARGB_8888);
 			Utils.matToBitmap(resultMat, bmp);
@@ -447,11 +447,9 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		int fromPointsSize = fromPoints.size();
 		for (int i = 0; i < fromPointsSize; i++) {
 
-			Point from = fromPoints.get(i);
+			Point tmp = fromPoints.get(i);
 			Point to = toPointsArray[i];
-
-			from.x *= factor;
-			from.y *= factor;
+			Point from = new Point(tmp.x * factor, tmp.y * factor);
 
 			to.x *= factor;
 			to.y *= factor;
@@ -474,21 +472,6 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			from.y *= factor;
 
 			Core.circle(image, from, 4, redScalar, 6);
-		}
-	}
-	
-	private void displayPoints(Mat image, List<Point> fromPoints) {
-		if (fromPoints == null)
-			return;
-
-		for (int i = 0; i < fromPoints.size(); i++) {
-
-			Point from = fromPoints.get(i);
-
-			from.x *= factor;
-			from.y *= factor;
-
-			Core.circle(image, from, 4, blueScalar, 6);
 		}
 	}
 

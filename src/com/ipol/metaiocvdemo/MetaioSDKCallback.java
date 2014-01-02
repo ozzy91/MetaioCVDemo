@@ -45,7 +45,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onNewCameraFrame(cameraFrame);
 		frameCount++;
 
-		if (frameCount % 2 == 0) {
+		if (frameCount % 4 == 0) {
 			activity.updateFramerate();
 			new ConvertTask(cameraFrame).execute();
 
@@ -88,9 +88,10 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 			Mat mat = getMat(cameraFrame);
 
 			long starttime = System.currentTimeMillis();
-			 bitmap = goalDetectionFilter.processFrame(mat);
-//			bitmap = featureDetection.processFrame(mat);
-			Log.e("timer", "processFrame finished after " + (System.currentTimeMillis() - starttime));
+			// bitmap = goalDetectionFilter.processFrame(mat);
+			bitmap = featureDetection.processFrame(mat);
+			// Log.e("timer", "processFrame finished after " +
+			// (System.currentTimeMillis() - starttime));
 
 			if (bitmap != null)
 				activity.updatePreview(bitmap);
