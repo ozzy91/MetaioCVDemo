@@ -17,5 +17,40 @@
         android:layout_marginLeft="155dp"
         android:textColor="#ff0000"
         android:textSize="9dp" />
+    
+    <TextView
+        android:id="@+id/txt_angle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textSize="9dp" />
+    
+    <TextView
+        android:id="@+id/txt_distance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:textSize="9dp" />
+    
+    <TextView
+        android:id="@+id/txt_distance_to_target"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:textSize="9dp" />
+    
+    <TextView
+        android:id="@+id/txt_points"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="70dp"
+        android:textSize="9dp" />
+    
+    <TextView
+        android:id="@+id/txt_distance_miss"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="90dp"
+        android:textSize="9dp" />
 
 </FrameLayout>

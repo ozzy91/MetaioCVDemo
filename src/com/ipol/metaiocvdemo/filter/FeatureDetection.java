@@ -24,11 +24,14 @@ import android.os.Vibrator;
 import android.util.Log;
 
 import com.ipol.metaiocvdemo.DisplayHelper;
+import com.ipol.metaiocvdemo.MetaioActivity;
 
 public class FeatureDetection extends Filter implements SensorEventListener {
 
 	private static final int factor = 5;
 	private static final boolean DEBUG = true;
+
+	private Activity activity;
 
 	private Bitmap bmp;
 	private Scalar pinkScalar = new Scalar(255, 0, 255);
@@ -61,6 +64,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 	private Vibrator vibrator;
 
 	public FeatureDetection(Activity activity) {
+		this.activity = activity;
 		tracker = new FeatureTracker();
 		targetPoint = new Point();
 
@@ -115,7 +119,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 			displayPoints(resultMat, initial, points);
 		}
 
-		Core.circle(image, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
+		Core.circle(resultMat, new Point(targetPoint.x / dfactorX, targetPoint.y / dfactorY), ballRadius, yellowScalar);
 
 		target = new Point(targetPoint.x / factorX, targetPoint.y / factorY);
 
@@ -335,6 +339,7 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 
 			hitPointFrom = averageFrom;
 			hitPointTo = averageTo;
+			Core.circle(resultMat, averageTo, 6, redScalar, 4);
 		}
 
 		if (DEBUG) {
@@ -355,12 +360,22 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		// }
 
 		boolean distanceValid = averageDistance >= 42;
-		boolean minumumPointCountValid = numberOfHitPoints >= 1;
-		boolean distanceToTargetValid = Math.sqrt(Math.pow(averageToX - target.x * factorX, 2)
-				+ Math.pow(averageToY - target.y * factorY, 2)) < 1999;
+		boolean minimumPointCountValid = numberOfHitPoints >= 1;
+		double distanceToTarget = Math.sqrt(Math.pow(averageToX - target.x * factorX, 2)
+				+ Math.pow(averageToY - target.y * factorY, 2));
+		boolean distanceToTargetValid = distanceToTarget < 1999;
 
 		if (DEBUG) {
-
+			if (activity instanceof MetaioActivity) {
+				MetaioActivity mActivity = (MetaioActivity) activity;
+				mActivity.updateLabel("angle", "" + newAngle, angleValid);
+				if (averageDistance != Float.NaN)
+					mActivity.updateLabel("distance", "" + averageDistance, distanceValid);
+				if (distanceToTarget != Float.NaN)
+					mActivity.updateLabel("distanceToTarget", "" + distanceToTarget, distanceToTargetValid);
+				mActivity.updateLabel("hitPoints", "" + numberOfHitPoints, minimumPointCountValid);
+				mActivity.updateLabel("distanceMiss", "" + averageDistanceMiss, averageDistanceMiss >= 42);
+			}
 		}
 		// CGSize moveVector = CGSizeMake(-distanceToBallX / 20 ,
 		// distanceToBallY / 20 );
@@ -372,25 +387,13 @@ public class FeatureDetection extends Filter implements SensorEventListener {
 		boolean numberOfHitPointsBiggerThenNumberOfMissPoints = (numberOfMissPoints / 1.5f) < numberOfFoundPoints;
 		boolean missedPointsLongEnough = averageDistanceMiss >= 42;
 
-		if (!angleValid)
-			System.out.println(angleValid + " angleValid");
-		if (!distanceValid)
-			System.out.println(distanceValid + " distanceValid");
-		if (!minumumPointCountValid)
-			System.out.println(minumumPointCountValid + " minumumPointCountValid");
-		if (!distanceToTargetValid)
-			System.out.println(distanceToTargetValid + " distanceToTargetValid");
-		if (!(numberOfHitPoints > 0))
-			System.out.println((numberOfHitPoints > 0) + " numberOfHitPoints > 0");
 		if (!numberOfHitPointsBiggerThenNumberOfMissPoints)
 			System.out.println(numberOfHitPointsBiggerThenNumberOfMissPoints
 					+ " numberOfHitPointsBiggerThenNumberOfMissPoints");
-		if (!missedPointsLongEnough)
-			System.out.println(missedPointsLongEnough + " missedPointsLongEnough");
 		System.out.println("---------------");
 
-		if (angleValid && distanceValid && minumumPointCountValid && numberOfFramesReached && distanceToTargetValid
-				&& numberOfHitPoints > 0 && numberOfHitPointsBiggerThenNumberOfMissPoints && missedPointsLongEnough) {
+		if (angleValid && distanceValid && minimumPointCountValid && numberOfFramesReached && distanceToTargetValid
+				&& numberOfHitPointsBiggerThenNumberOfMissPoints && missedPointsLongEnough) {
 
 			counter = 0;
 

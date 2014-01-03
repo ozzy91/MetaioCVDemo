@@ -28,8 +28,6 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 	private Paint markerPaint;
 
 	private int frameCount = 0;
-	private long totalDuration;
-	private int count;
 
 	public MetaioSDKCallback(MetaioActivity activity, IMetaioSDKAndroid sdk) {
 		this.activity = activity;
@@ -45,7 +43,7 @@ public class MetaioSDKCallback extends IMetaioSDKCallback {
 		super.onNewCameraFrame(cameraFrame);
 		frameCount++;
 
-		if (frameCount % 4 == 0) {
+		if (frameCount % 2 == 0) {
 			activity.updateFramerate();
 			new ConvertTask(cameraFrame).execute();
 

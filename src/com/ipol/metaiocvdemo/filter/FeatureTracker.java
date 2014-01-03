@@ -164,9 +164,9 @@ public class FeatureTracker {
 			if (acceptTrackedPoint) {
 				// keep this point in vector
 				initial.set(k, initial.get(i));
-				Point[] array = points[1].toArray();
-				array[k++] = array[i];
-				points[1] = new MatOfPoint2f(array);
+//				Point[] array = points[1].toArray();
+				points1Array[k++] = points1Array[i];
+				points[1] = new MatOfPoint2f(points1Array);
 				// history.set(k - 1, history.get(i));
 			}
 		}
@@ -198,7 +198,7 @@ public class FeatureTracker {
 	}
 
 	public boolean addNewPoints() {
-		return (points[0].cols() * points[0].rows()) <= 8;
+		return (points[0].cols() * points[0].rows()) <= 10;
 	}
 
 	public void swapPoints() {
